@@ -71,7 +71,8 @@ print('cleared 2')
 
 iteratorgid=[i for i in xrange(25,2300)]
 
-def func2map(iteratorgid):    
+#def func2map(iteratorgid):   
+for i in iteratorgid:
     cell = h.Import3d_SWC_read()
     print(len(nfs))
     print(i)
@@ -86,11 +87,11 @@ def func2map(iteratorgid):
     ctng(show=False, magnification=200,file_name=file_name)
     #mlab.savefig(str(i)+'.wrl')   
     
-def main():    
-    futures.map(func2map,iteratorgid)    
+#def main():    
+#    futures.map(func2map,iteratorgid)    
 
-if __name__ == "__main__":
-    main()
+#if __name__ == "__main__":
+ #   main()
     #import pdb
     #pdb.set_trace()
     #print('cleared 3')
