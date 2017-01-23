@@ -1,0 +1,654 @@
+//load_file("nrngui.hoc")
+{load_file("stdgui.hoc")}
+{load_file("nrngui.hoc")}
+
+
+{load_file("import3d.hoc")}
+
+//load_file("supplament.hoc")
+
+//load_file("supplament.hoc")
+
+//load_file("load_swc2.hoc")
+objref py
+py = new PythonObject()
+//py.b = "hello"
+//nrnpython("print b")
+nrnpython("import neuron")
+nrnpython("import numpy as np")
+nrnpython("import scipy")
+nrnpython("import os")
+//from neuron import h # h is the object that you need to use
+//nrnpython("os.chdir('/media/USB DISK/allman/CNG version')")
+
+nrnpython("os.chdir('/home/mnt/neuron_morphologies')")
+
+nrnpython("os.system('ls *.swc > swc_names.txt')")
+nrnpython("f = open('swc_names.txt')")
+
+nrnpython("nfs = [line.strip() for line in open('swc_names.txt', 'r')]")
+
+//nrnpython("nfs = (line.rstrip('\n') for line in open(swc_names.txt))")
+nrnpython("f.close()")
+//nrnpython("print nfs[:]")
+
+//The problem is that the strings have extra junk in them. Clean it up later or learn how to extract the new line character out.
+
+{load_file("nrngui.hoc")}
+{load_file("import3d.hoc")}
+
+begintemplate Cell
+public soma, axon, dend, apic
+create soma[1], axon[1], dend[1], apic[1]
+public all, somatic, axonal, basal, apical, position, synlist, compress_tree, unbranch_tree
+objref all, somatic, axonal, basal, apical, synlist
+
+
+
+public lambda_f, geom_nseg
+func lambda_f() { local i, x1, x2, d1, d2, lam
+        if (n3d() < 2) {
+                return 1e5*sqrt(diam/(4*PI*$1*Ra*cm))
+        }
+// above was too inaccurate with large variation in 3d diameter
+// so now we use all 3-d points to get a better approximate lambda
+        x1 = arc3d(0)
+        d1 = diam3d(0)
+        lam = 0
+        for i=1, n3d()-1 {
+                x2 = arc3d(i)
+                d2 = diam3d(i)
+                lam += (x2 - x1)/sqrt(d1 + d2)
+                x1 = x2   d1 = d2
+        }
+        //  length of the section in units of lambda
+        lam *= sqrt(2) * 1e-5*sqrt(4*PI*$1*Ra*cm)
+
+        return L/lam
+}
+
+proc geom_nseg() {
+  //soma area(.5) // make sure diam reflects 3d points
+  forsec all { nseg = int((L/(0.1*lambda_f(100))+.9)/2)*2 + 1  }
+}
+
+proc position() { local i, x, y, z
+  x = $1  y = $2  z = $3 //
+ forall for i = 0, n3d()-1 { // forall of each cell as opposed to forall of the entire network.
+    pt3dchange(i, x+x3d(i),y+y3d(i), z+z3d(i), diam3d(i))
+  }//dend
+
+}
+
+
+proc check_tree() { local dd,i,nd
+ print "Checking tree"
+ print "Note: diam values less than 0.3um are set to 0.3um!!"
+ nd = 0
+ forall {
+  for i = 1,n3d()-1 {
+     if (diam3d(i-1) > diam3d(i) + 1 ) {
+         print "Jump diam + >  1um in: ",secname()," 3Dpoint: ",i,diam3d(i),diam3d(i-1)
+     }
+     if (diam3d(i) > diam3d(i-1) + 1 ) {
+         print "Jump diam - >  1um in: ",secname()," 3Dpoint: ",i,diam3d(i-1),diam3d(i)
+     }
+  }
+ }
+ forall {
+  for i = 0,n3d()-1 {
+     dd = diam3d(i)
+     if ( dd < 0.6 ) {
+          pt3dchange(i, 0.3)
+     nd = nd+1
+          print "Note diam changed to 0.3 for: ",secname()," 3Dpoint: ",i," former: ",dd
+      }
+
+   }
+ }
+ forall { area(0.5) }
+ define_shape()
+ print "Done!\tDiam was changed for: ",nd," points"
+
+ forall {if (L>10) {nseg=int(L/10)}}
+}
+//objref
+
+//}
+//with disregular morphology.
+//teout=0.0858446,teavg=0.345937,testd=0.00254996,sig=-101.999
+//With regulated morphology.
+//teout=0.238144,teavg=0.46823,testd=0.00262056,sig=-87.8003
+proc unbranch_tree() { local dd,i,nd localobj strobj
+i=0
+strobj = new StringFunctions()
+ print "Checking tree"
+ print "Note: diam values less than 0.3um are set to 0.3um!!"
+ nd = 0
+ forall {
+number=n3d()
+//  for i = 0,number-1 {
+  while(i<n3d()){
+ //  strdef checkdend, check5
+	 // checkdend=""
+        print "i=", i, "n3d()=", n3d(), number
+	//checkdend=secname()
+        print secname()
+	//strobj.tail(checkdend, "].", check5)
+	//if(number==0){break}
+      //if(strcmp(check5,"soma")==0){
+        ifsec "*.dend*" {
+	 secname()
+      pt3dchange(i, 0)
+//         pt3dremove(i)
+         //number-=1
+        print "removed"
+	}
+        ifsec "*.axon*" {
+        secname()
+      pt3dchange(i, 0)
+	 //pt3dremove(i)
+         //number-=1
+        print "removed"
+	}
+        ifsec "*.apic*" {
+         secname()
+     pt3dchange(i, 0)
+	// pt3dremove(i)
+         //number-=1
+        print "removed"
+	}
+          i+=1
+	//if(strcmp(check5,"axon[")==0){
+	//pt3dremove(i)
+	//}
+	//if(strcmp(check5,"apic[")==0){
+	//pt3dremove(i)
+	//}
+  }
+ }
+}
+proc compress_tree() { local dd,i,nd
+ print "Checking tree"
+ print "Note: diam values less than 0.3um are set to 0.3um!!"
+
+ forall {
+  for i = 0,n3d()-1 {
+     dd = diam3d(i)
+     pt3dchange(i, $1)
+     print "Note diam changed to 0.3 for: ",secname()," 3Dpoint: ",i," former: ",dd
+
+   }
+ }
+ forall { area(0.5) }
+ define_shape()
+ print "Done!\tDiam was changed for: ",nd," points"
+
+ forall {if (L>10) {nseg=int(L/10)}}
+}
+
+
+proc init() {
+    all = new SectionList()
+    somatic = new SectionList()
+    axonal = new SectionList()
+    basal = new SectionList()
+    apical = new SectionList()
+ //    forsec basal { insert pas }
+   // forsec apical { insert pas }
+    //)	forall{ }
+    synlist = new List()
+    geom_nseg()
+    //check_tree()
+}
+
+
+endtemplate Cell
+
+// $s1 swc morphology file name
+// on exit the return object is a Cell instance with
+// the morpology specified by the $s1 file
+obfunc mkcell() { localobj import, morph, cell
+    cell = new Cell()
+    morph = new Import3d_SWC_read()
+    morph.input($s1)
+    import = new Import3d_GUI(morph, 0)
+    execute("forall delete_section()", cell)
+    import.instantiate(cell)
+    return cell
+}
+
+
+objref pc
+pc = new ParallelContext()
+
+
+objref cells
+cells = new List()
+
+//chdir("/home/r2jarvis/Hipp_paper_code (2)")
+objref pc
+pc = new ParallelContext()
+start_setup=pc.time
+print pc.nhost, "this is the number of hosts used and the wall time is currently =", start_setup
+objref ranlist
+ranlist = new List()
+
+proc makecells() {local i,j,k, cell_diam, cell_length, r  localobj cell, nc, nil, rs, ranlist, gidvec, morph, import, strobj, ofths
+strobj = new StringFunctions()
+  ranlist = new List()
+  gidvec = new Vector()
+
+// Results from connection matrix ipython suggestion when only cells between 0-200 are considered  25:50,25:50
+// The most interconnected subset is between cells 25-50
+
+// It seems likely that the best results will come from searching all of the human swc cells available on neuromorpho.
+// Searching the connection matrices of larger data sets will allow for more
+// human and elephant brains have more spindle cells long range interconnectors.
+
+// for (i=0; /*25+pc.id;*/ i < 63;/* was just 51 in standard dir 4228;*/ i += 1 ){//pc.nhost) { //0, 4, 8, 12
+ for (i=25+pc.id; i < 51 ;/*in standard dir 4228;*/ i +=pc.nhost) { //0, 4, 8, 12
+
+ //ranlist.append(new RandomStream(i))  // ranlist.o(i) corresponds to
+
+  /* Extensively Elaborated code that draws from the Sources:
+  M. L. Hines and N. T. Carnevale, “Translating network models to parallel hardware in NEURON,” J.
+  Neurosci. Methods, vol. 169, no. 2, pp. 425–455, Apr. 2008.
+  “ModelDB: Encoding and Retrieval in a CA1 microcircuit  (Cutsuridis et al.
+  */
+
+//        chdir("/home/zaza3/Desktop/SWC-2013/Main")
+chdir("/home/zaza3/neuro_code/SWC-2013human")
+	cell = mkcell( py.nfs[i] )
+        //cell.all{ insert xtra }
+	//cell.soma[0].x_tra()
+        /*forsec cell.axonal {
+          ofths = new OFTH(0.5)
+        }*/
+	print cell, " = cell this does execute however"
+	print "this never executes"
+ 	 cells.append(cell)
+
+ 	   strdef check5, check3
+	   check5 =""
+
+	   ifsec "*.soma*" {
+	   check3=secname()
+
+	   strobj.tail(check3, "].", check5)
+
+	    if(!strcmp(check5,"soma[0]")==0){ //ie its the soma but _Not_ the section containing the spike trigger zone
+		  cell.soma[0] nc = new NetCon(&v(0.5), nil)
+  		  nc.threshold = 10
+		}
+	   }
+	  ifsec "*.soma[0]" {
+	    }
+
+ }
+}
+makecells()
+/*objref oftsh
+forall{
+ for(x,0){
+   oftsh = new OFTH(0.5)
+  }
+}*/
+
+
+
+
+//run()
+//mkspktrain(Random,rate,tmax) -- make a spike train with specified rate,tmax
+//Random obj must be initialized
+
+
+//{declare("vb","o[2]","vs","o[2]")} this statement only works when infot is installed, which pertains to the neural query system NQS.
+
+
+
+//make random spikes with frequency $1, tmax=$2, offset for spikes=$3, alpha=$4 -- ratio of spikes from
+//vs[0] that get placed in vs[1]
+//spikes in vs[0] are randomly picked, spikes in vs[1] are same as in vs[0] but shifted forward by $3 offset
+//so vs[0] 'drives' vs[1], or can be used to predict it, but vs[1] cant be used to predict vs[0]
+/*proc mkspks () { local tmax,rate,t,dt,intt,off,i,alpha localobj rdp
+  rate=$1 tmax=$2 off=$3
+  if(numarg()>3)alpha=$4 else alpha=1
+  intt=1e3/rate
+  rdp=new Random()
+  rdp.ACG(1234)
+  rdp.poisson(intt)
+  for i=0,1 vs[i].resize(0)
+  vs[0]=mkspktrain(rdp,rate,tmax)
+  if(alpha < 1.0) {
+    for vtr(&t,vs[0]) if(rdp.uniform(0,1) <= alpha) vs[1].append(t+off)
+  } else {
+    vs[1].copy(vs[0])
+    vs[1].add(off)
+  }
+}*/
+//te
+
+//chdir("$HOME/Desktop/Hipp_paper_code\ \(2\)")
+
+//chdir("/home/zaza3/Desktop/Hipp_paper_code")
+
+//system("cd $HOME/Desktop/neuroprosthesis")
+
+//load_file("infot.hoc")
+
+//system("cd -")
+
+
+//print "survived first run"
+//load_file("ranstream.hoc")  // to give each cell its own sequence generator
+
+//objref ranlist  // for RandomStreams on this host
+//ranlist = new List()
+//ranlist.append(new RandomStream(0))  // ranlist.o(i) corresponds to
+//objref rs, rs2
+//rs = ranlist.object(0)  // RandomStream for cells.object(i)
+//rs2.start()
+//rs2.r.discunif(0, 10)  // return source cell index
+//u.fill(0)  // u.x[i]==1 means spike source i has already been chosen
+//nsyn = 0
+
+
+//cnt_for_all=0
+//forall{  }
+ forall { insert hh
+             //insert xtra
+             insert pas
+             cnt_for_all+=1
+           } //its xtra that causes the seg fault. I have to uninsert it before running a simulation.
+           //its a point process.
+
+
+//Declare some simple Python lists with no size allocation.
+nrnpython("sources = []")// [None]*max(cnt_for_all)")//declare a list of sources.
+nrnpython("targets = []")//[None]*max(cnt_for_all)")//declare a list of sources.
+
+
+
+cnt_f=0
+cnt_r=0
+
+//chdir("/home/r2jarvis/Hines_stuff2/random/off_hercules")
+//chdir("/home/zaza3/neuro_code/")
+//load_file("interpxyz.hoc")
+//grindaway()
+
+
+objref spk_trig_ls
+proc list_spike_trigger(){
+ spk_trig_ls = new SectionList()
+
+  forall{
+   for (x,0){
+
+  	ifsec "*.soma[0]" {
+	spk_trig_ls.append(secname())
+    	}
+        ifsec "*.axon*" {
+	spk_trig_ls.append(secname())
+    	}
+   }
+  }
+ }
+
+
+objref spk_rx_ls, strobj
+proc list_spike_recieve(){//localobj spk_rx_ls, strobj
+strobj = new StringFunctions()
+ spk_rx_ls = new SectionList()
+  forall{
+   for (x,0){
+   strdef check, check2
+   check =""
+
+   ifsec "*.soma*" {
+   check2=secname()
+
+   strobj.tail(check2, "].", check)
+
+    if(!strcmp(check,"soma[0]")==0){ //ie its the soma but _Not_ the section containing the spike trigger zone
+     spk_rx_ls.append(secname())
+    }
+   }
+
+   ifsec "*.dend*" {
+    print x, secname(), " secname"
+    spk_rx_ls.append(secname())
+   }
+
+   ifsec "*.apic*" {
+    print x, secname(), " secname"
+    spk_rx_ls.append(secname())
+    }
+   }
+ }
+
+}
+
+//survives second run, when these lists are commented out.
+
+list_spike_recieve()
+list_spike_trigger()
+
+proc find_all_distances() {//localobj syn_//cnt_r  // now expects xyc coords as arguments
+strdef sec_string1
+strdef sec_string2
+strdef cell_here
+strdef executable //I know bad names for future debugging
+strdef executable2
+strdef executable3
+strdef executable4
+strdef tail_src
+
+//tail_src = "initialise_tail_src_different"
+
+strdef tail
+
+strdef pre_src
+
+ forsec spk_rx_ls{
+
+  if (ismembrane("xtra")) { //its something about xtra that only has segment indexs at 0.5
+    for (x,0) {
+     cnt_f+=1
+     r = (sqrt((x_xtra(x) - $1)^2 + (y_xtra(x) - $2)^2 + (z_xtra(x) - $3)^2))
+     sum_r=sum_r + r
+  }
+ }
+// average_distance=sum_r/cnt_f //the sum of distances divided by the number of disances.
+// variance = sum_r-average_distance
+}
+}
+
+proc find_average(){
+ cnt_segments=0
+ forsec spk_trig_ls{ //localobj sec_string
+ strdef sec_string1
+  for (x,0) {
+   if(ismembrane("xtra")){
+   cnt_segments+=1
+   sec_string1=secname()
+   seg_num=x
+    find_all_distances(x_xtra(x), y_xtra(x),z_xtra(x), sec_string1, seg_num)
+   }
+  }
+ }
+}
+//find_average()
+
+//print "average distance ", average_distance, " total sum of distances ", sum_r//, " total number of segment pairs ", cnt_conn
+//print cells.count(), "variance ", variance
+
+
+//survives second run when the lists are intact. But second insert statements commented out.
+
+sum_r=0
+cnt_conn=0
+average_distance=0
+objref nclist//, synlist
+	/*Typical netcon syntax.	*/
+
+strdef synapse_post
+strdef synapse_pre
+objref syn_, nc
+nclist = new List() //don't want new nclist every time find_distances called.
+
+cnt_synapses=0 //don't want new cnt_synapses every time find_distances() called.
+
+
+objref tvec, idvec
+tvec = new Vector()
+idvec = new Vector()
+//objref polarity
+//polarity= new Random()
+objref prng
+prng = new Random()
+prng.uniform(0,1)
+proc find_distances() {//localobj syn_//cnt_r  // now expects xyc coords as arguments
+strdef sec_string1
+strdef sec_string2
+strdef cell_here
+strdef executable //I know bad names for future debugging
+strdef executable2
+strdef executable3
+strdef executable4
+strdef tail_src
+
+//tail_src = "initialise_tail_src_different"
+
+strdef tail
+
+strdef pre_src
+
+ forsec spk_rx_ls{
+
+  if (ismembrane("xtra")) { //its something about xtra that only has segment indexs at 0.5
+    for (x,0) {
+
+
+    //print "segment indexs ", x, " ", $5
+     cnt_f+=1
+     r = (sqrt((x_xtra(x) - $1)^2 + (y_xtra(x) - $2)^2 + (z_xtra(x) - $3)^2))
+     sum_r=sum_r + r
+	//40nm = 0.04um Actually required 40nm
+ //    print r
+
+
+
+	//variance=(r-$6)^2 //this element with the mean subtracted away.
+	sd = sqrt($6)
+	//prob = E^(r/sd)
+
+	if(r<20){ // less than 1 micrometre????
+
+
+
+	 print cell_here, " cell"
+	 print synapse_post, cell_here
+
+  	 sec_string1=$s4
+  	 num_seg_here=$5
+	 sec_string2=secname()
+
+	//sec_string2=secname()
+	strobj.head(sec_string2, "].", cell_here)
+	strobj.head(sec_string1, "].", pre_src)
+
+
+
+
+
+	strobj.tail(pre_src,"Cell",tail_src)
+	strobj.tail(cell_here,"Cell",tail) //tgt
+
+
+	strobj.right(tail, 1)
+	strobj.right(tail_src, 1)
+	print tail, " tail"
+	print tail_src, " tail_src"
+
+	if(strcmp(tail_src,tail)!=0){
+
+	print "tail_src", tail_src, "tail", tail
+	 print r, " ", cnt_f," secstring2:", sec_string2, "secstring1: ", sec_string1, "x= ", x, "INDEX INTO SEGMENT here", num_seg_here
+	  print x3d(0),y3d(0), z3d(0), diam3d(0)
+
+        // if((cnt_f%2)==0){
+	//  sprint(synapse_post, "%s%s", sec_string2, " syn_ = new NMDA(0.5)") //simple use dependent synapse strength activation function is based on
+//	 }else{
+  //        sprint(synapse_post, "%s%s", sec_string2, " syn_ = new GABAa(0.5)") //simple use dependent synapse strength activation function is based on the superposition of two exponential functions.
+	// }
+///////////////////////
+
+         polarity=prng.repick()
+	storex=x
+	if(polarity>0.3){
+         if((cnt_f%2)==0){
+	   sprint(synapse_post, "%s%s%d%s", sec_string2, " syn_ =  new NMDA(",storex,")")
+         }else{
+	   sprint(synapse_post, "%s%s", sec_string2, " syn_ = new AMPA(0.5)") //simple use dependent synapse strength activation function is based on
+         }
+	//syn_file.printf("\n")
+        //syn_file.printf(synapse_post)
+	//syn_file.printf("\n")
+	 execute(synapse_post) //put a post synapse at the target
+	 // synapse_post
+
+ 	// 2/3 excitatory)
+
+	}else if(polarity<=0.3){
+
+	 sprint(synapse_post, "%s%s%d%s", sec_string2, " syn_ = new GABAa(",storex,")") //MyExp2Syn(",storex,")")
+         //syn_file.printf("\n")
+	 //syn_file.printf(synapse_post)
+	//syn_file.printf("\n")
+	 execute(synapse_post) //put a post synapse at the target
+ 	 //print synapse_post
+	//print syn_
+		 //syn_.ggid=tail
+	 //syn_.srcgid=tail_src
+	// 1/3 inhibitory)
+		}
+
+	 //////////////////
+	// sprint(synapse_post, "%s%s", sec_string2, " syn_ = new MyExp2Syn(0.5)")
+	 //STDPE2
+	// sprint(synapse_post, "%s%s", sec_string2, " syn_ = new STDPE2(0.5)")
+	 execute(synapse_post) //put a post synapse at the target
+	 print synapse_post
+	 sprint(synapse_pre, "%s%s", sec_string1," nc = new NetCon (&v (0.5), syn_)")
+	 /*why not just store the source and destinations here.*/
+	 //why not just put sec_string1 and sec_string2 into a python array.
+	 execute(synapse_pre)
+	 print synapse_pre
+	 nc.threshold = 10
+	 nc.delay = r
+         nc.weight = r //should be the conductance value itself.
+         nc.record(tvec,idvec)
+	 nclist.append(nc)
+
+
+	sprint(executable,"%s%s", cell_here,"].synlist.append(syn_)")
+	execute(executable)
+
+	 py.targets.append(tail) // the post synapse.
+	 py.sources.append(tail_src)
+	 print cnt_conn
+
+	 cnt_conn+=1
+	 //}
+	}
+
+      }
+
+    }
+   }
+
+ }
+ //   average_distance=sum_r/cnt_f //the sum of distances divided by the number of disances.
+}
