@@ -9,7 +9,7 @@ help(prepare_3dprintable.ctng) for more.
 """
 
 def ctng(secs=None, dx=0.5, all_diam=1, somascale=1, special_all_diam={},
-         magnification=200, show=True, color=(1, 0, 0)):
+         magnification=200, show=True, color=(1, 0, 0),file_name=None):
     """
     ctng: prepare NEURON morphology for 3D printing
 
@@ -52,6 +52,8 @@ def ctng(secs=None, dx=0.5, all_diam=1, somascale=1, special_all_diam={},
     print('phase 1')
 
     from mayavi import mlab
+    #mlab.options.offscreen = True
+
     import geometry3d
     import time
     import numpy
@@ -117,7 +119,9 @@ def ctng(secs=None, dx=0.5, all_diam=1, somascale=1, special_all_diam={},
     print('time to compute volume:', time.time() - start)
 
     print('number of triangles: %g' % (len(tri_mesh.data) / 9.))
+    #mlab.options.offscreen = True
 
+    mlab.savefig(str(i)+'.wrl')   
     #if show:
     #    mlab.show()
 

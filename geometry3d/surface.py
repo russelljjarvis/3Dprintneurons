@@ -72,4 +72,5 @@ def surface(source, dx=0.25, internal_membranes=False, n_soma_step=100, nounifor
     ys = numpy.arange(ylo - 3 * dx, yhi + 3 * dx, dx)
     zs = numpy.arange(zlo - 3 * dx, zhi + 3 * dx, dx)
     print(xs,ys,zs)
+    print(triangularMesh.TriangularMesh(surfaces.triangulate_surface(objects, xs, ys, zs, internal_membranes)))
     return triangularMesh.TriangularMesh(surfaces.triangulate_surface(objects, xs, ys, zs, internal_membranes))

@@ -8,7 +8,7 @@ import itertools
 import bisect
 cimport cython
 
-    
+
 #
 # declare prototypes
 #
@@ -43,15 +43,15 @@ def contains_surface(i, j, k, objdist, xs, ys, zs, dx, r_inner, r_outer, reject_
     cdef bint has_neg = False
     cdef bint has_pos = False
     cdef double x, y, z
-    
+
     global total_surface_tests, corner_tests
     total_surface_tests += 1
-    
+
     # sphere tests added 2012-12-10
     cdef double xbar = xs[i] + dx / 2.
     cdef double ybar = ys[j] + dx / 2.
     cdef double zbar = zs[k] + dx / 2.
-    
+
     d = fabs(objdist(xbar, ybar, zbar))
     if d <= r_inner: return True
     if d >= r_outer and reject_if_outside:
@@ -59,9 +59,9 @@ def contains_surface(i, j, k, objdist, xs, ys, zs, dx, r_inner, r_outer, reject_
             print 'would normally reject because at (%g, %g, %g): d = %g, r_outer = %g     (dx = %g)' % (xbar, ybar, zbar, d, r_outer, dx)
         else:
             return False
-    
-    
-    
+
+
+
     # indeterminant from spheres; check corners
     corner_tests += 1
     #print 'corner_tests = %d out of total_surface_tests = %d' % (corner_tests, total_surface_tests)
@@ -91,7 +91,7 @@ def process_cell(int i, int j, int k, list objects, numpy.ndarray[numpy.float_t,
     cdef list position
     x, y, z = xs[i], ys[j], zs[k]
     x1, y1, z1 = xs[i + 1], ys[j + 1], zs[k + 1]
-    
+
     position = [(x, y, z),
                 (x1, y, z),
                 (x1, y1, z),
@@ -112,7 +112,7 @@ def process_cell(int i, int j, int k, list objects, numpy.ndarray[numpy.float_t,
         print 'position[4]:', position[4]
 
     return start + 9 * find_triangles(value0, value1, value2, value3, value4, value5, value6, value7, x, x1, y, y1, z, z1, &tridata[start])
-    
+
 
 
 cdef append_with_deltas(list cell_list, int i, int j, int k):
@@ -137,20 +137,20 @@ cpdef triangulate_surface(list objects, xs, ys, zs, internal_membranes):
     # assert(grid_dx == grid_dy == grid_dz)
     cdef double r_inner = grid_dx / 2., r_outer = r_inner * sqrt(3)
     cdef double dx = grid_dx
-    
+
     cdef list cell_list
 
     cdef dict to_process = {}
-    
+
     cdef int cell_count = 0
     cdef int dup_count = 0
     cdef int last_starti
 
     cdef list cell_list2 = []
-    
+
     cdef numpy.ndarray[numpy.float_t, ndim=1] triangles
     cdef int surf_count = 0
-    
+
     cdef dict cur_processed
     cdef int brute_force_count = 0
     cdef list clip_objs
@@ -199,7 +199,7 @@ cpdef triangulate_surface(list objects, xs, ys, zs, internal_membranes):
                     if contains_surface(i, j, k, objdist, xs, ys, zs, grid_dx, r_inner, r_outer, reject_if_outside):
                         to_process[cell_id] = 0
                         append_with_deltas(cell_list, i, j, k)
-                        
+
         else:
             # TODO: is this support ever really useful?
             while cell_list:
@@ -212,13 +212,13 @@ cpdef triangulate_surface(list objects, xs, ys, zs, internal_membranes):
                             triangles.resize(triangles.size * 2, refcheck=False)
                         triangles_i = process_cell(i, j, k, [objdist], xs, ys, zs, triangles, triangles_i)
                         append_with_deltas(cell_list, i, j, k)
-    
+
     if internal_membranes:
         triangles.resize(triangles_i, refcheck=False)
         return triangles
-    
+
     cur_processed = None
-    
+
     # use chunks no smaller than 10 voxels across, but aim for max_chunks chunks
     cdef int chunk_size = max(10, int((len(xs) * len(ys) * len(zs) / max_chunks) ** (1 / 3.)))
     cdef int almost = chunk_size - 1
@@ -229,13 +229,13 @@ cpdef triangulate_surface(list objects, xs, ys, zs, internal_membranes):
 
     # this is bigger than sqrt(3) * dx / 2 \approx 0.866, the distance from center of cube to corner
     cdef double max_d = dx * .87 * chunk_size
-    
+
     # safety factor
     max_d *= 2
 
     cdef list chunk_objs = [[[[] for k in range(nz)] for j in range(ny)] for i in range(nx)]
     cdef list chunk_pts = [[[[] for k in range(nz)] for j in range(ny)] for i in range(nx)]
-    
+
     # identify chunk_objs
     cdef int lenx = len(xs)
     cdef int leny = len(ys)
@@ -247,7 +247,7 @@ cpdef triangulate_surface(list objects, xs, ys, zs, internal_membranes):
     #       remove it when I fix this (and will get better performance)
     for m, obj in enumerate(objects):
         is_skew_cone = isinstance(obj, graphicsPrimitives.SkewCone)
-        objdist = obj.distance        
+        objdist = obj.distance
         for i in range(nx):
             xlo, xhi = xs[i * chunk_size], xs[min((i + 1) * chunk_size - 1, lenx - 1)]
             chunk_objsi = chunk_objs[i]
@@ -262,10 +262,11 @@ cpdef triangulate_surface(list objects, xs, ys, zs, internal_membranes):
                     # CTNG:testball
                     if is_skew_cone or objdist((xlo + xhi) * .5, (ylo + yhi) * .5, (zlo + zhi) * .5) < max_d:
                         chunk_objsi[j][k].append(objdist)
-                
+
 
     # identify chunk_pts
-    for i, j, k in to_process.keys():
+    ijklist=[ i, j, k for i, j, k in to_process.keys() ]
+    for i, j, k in injklist:
         chunk_pts[i // chunk_size][j // chunk_size][k // chunk_size].append((i, j, k))
 
     cdef int num_keys = len(to_process.keys())
@@ -274,7 +275,7 @@ cpdef triangulate_surface(list objects, xs, ys, zs, internal_membranes):
     triangles = numpy.zeros(45 * num_keys)
     cdef int starti = 0
     cdef int a, b, c
-    cdef int extra_count 
+    cdef int extra_count
     cdef list obj_search
     # handle a chunk at a time
     for a in range(nx):
@@ -310,14 +311,14 @@ cpdef triangulate_surface(list objects, xs, ys, zs, internal_membranes):
                         else:
                             print '    *** should never get here ***'"""
                     '''
-                    
+
     # some regions of the surface may yet be missing
     # it's possible for voxels to not contain detectable surface of any component, but
     # contain detectable surface for their union
     # to find, we look for holes in the surface and flood from them, checking against every object
     # TODO: could be smarter about this: at least check (enlarged) bounding boxes first
-    
-    
+
+
     last_starti = 0
     cdef dict process2
     pt_neighbor_map = {}
@@ -327,7 +328,7 @@ cpdef triangulate_surface(list objects, xs, ys, zs, internal_membranes):
     # append to the pt_neighbor_map
     process2 = {}
     count = {}
-    
+
     for i in xrange(last_starti, starti, 9):
         pts = {}
         for j in xrange(3):
@@ -363,9 +364,11 @@ cpdef triangulate_surface(list objects, xs, ys, zs, internal_membranes):
                                 if cell_id not in process2 and cell_id not in to_process:
                                     process2[cell_id] = 0
                 break
-    
-    still_to_process = process2.keys()
-    print 'len(still_to_process) = %d' % len(still_to_process)
+    for key,value in process2.items():
+        still_to_process.append(key)
+
+    print(type(still_to_process))
+    print('len(still_to_process) = %d' % len(still_to_process))
     # flood on those still_to_process
     while still_to_process:
         cell_id = still_to_process.pop()
@@ -386,7 +389,7 @@ cpdef triangulate_surface(list objects, xs, ys, zs, internal_membranes):
             # mark it off so we know we don't visit that grid point again
             to_process[cell_id] = 0
             if old_start_i != starti:
-                append_with_deltas(still_to_process, i, j, k)    
+                append_with_deltas(still_to_process, i, j, k)
 
     triangles.resize(starti, refcheck=False)
 
