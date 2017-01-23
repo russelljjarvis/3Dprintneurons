@@ -118,7 +118,7 @@ def ctng(secs=None, dx=0.5, all_diam=1, somascale=1, special_all_diam={},
 
     print('number of triangles: %g' % (len(tri_mesh.data) / 9.))
 
-    if show:
-        mlab.show()
+    #if show:
+    #    mlab.show()
 
     return mesh, tri_mesh
