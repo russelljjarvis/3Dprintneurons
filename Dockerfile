@@ -1,7 +1,11 @@
 #author Russell Jarvis rjjarvis@asu.edu
 #author Rick Gerkin rgerkin@asu.edu
 
-FROM continuumio/anaconda 
+FROM ubuntu
+RUN mkdir /home/jovyan/
+ENV HOME /home/jovyan/
+
+WORKDIR $HOME
 USER root
 RUN apt-get -qq update
 RUN apt-get -qq -y install curl
@@ -15,6 +19,9 @@ RUN apt-get install -y wget bzip2 ca-certificates \
     emacs \
     libxml2-dev libxslt-dev python-dev sudo
 
+RUN wget http://repo.continuum.io/miniconda/Miniconda3-3.7.0-Linux-x86_64.sh -O ~/miniconda.sh
+RUN bash ~/miniconda.sh -b -p $HOME/miniconda
+ENV PATH "$HOME/miniconda/bin:$PATH"
 #WORKDIR $HOME
 RUN apt-get install -y python-setuptools python-dev build-essential
 RUN easy_install pip
@@ -46,7 +53,7 @@ RUN wget http://www.neuron.yale.edu/ftp/neuron/versions/v7.4/nrn-7.4.tar.gz
 RUN tar -xzf nrn-7.4.tar.gz && rm nrn-7.4.tar.gz 
 WORKDIR nrn-7.4
 RUN which python
-RUN ./configure --prefix=`pwd` --without-iv --with-nrnpython=/opt/conda/bin/python --with-paranrn=/usr/local/lib/openmpi
+RUN ./configure --prefix=`pwd` --without-iv --with-nrnpython=/home/jovyan/miniconda/bin/python --with-paranrn=/usr/local/lib/openmpi
 RUN make all
 RUN sudo make install
 
@@ -55,10 +62,7 @@ WORKDIR src/nrnpython
 RUN python setup.py install
 ENV NEURON_HOME $HOME/nrn-7.4/x86_64
 ENV PATH $NEURON_HOME/bin:$PATH
-RUN mkdir /home/jovyan/
-ENV HOME /home/jovyan/
 
-WORKDIR $HOME
 
 RUN apt-get update
 RUN apt-get upgrade -y 
@@ -67,9 +71,13 @@ RUN apt-get install -y apt-utils software-properties-common
 RUN apt-add-repository 'http://downloads.makerbot.com/makerware/ubuntu' -y
 RUN apt-add-repository ppa:fkrull/deadsnakes -y
 RUN wget http://downloads.makerbot.com/makerware/ubuntu/dev@makerbot.com.gpg.key
-RUN apt-key add dev@makerbot.com.gpg.key  -y
+RUN apt-key add dev@makerbot.com.gpg.key 
 RUN apt-get update 
-RUN apt-get install makerware  -y
+RUN apt-get install -y makerware  
+
+RUN apt-get install povray# --reinstall 
+RUN ln -s /etc/povray/3.7/povray.conf $HOME/.povray
+
 
 RUN apt-get update \
       && apt-get install -y sudo \
@@ -79,4 +87,6 @@ RUN echo "jovyan ALL=NOPASSWD: ALL" >> /etc/sudoers
 
 RUN chown -R jovyan $HOME
 
-USER $NB_USER
+USER jovyan
+RUN sudo chown -R jovyan $HOME
+RUN mpiexec -np 4 python -c "import neuron"
