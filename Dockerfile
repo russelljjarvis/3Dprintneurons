@@ -55,17 +55,21 @@ WORKDIR src/nrnpython
 RUN python setup.py install
 ENV NEURON_HOME $HOME/nrn-7.4/x86_64
 ENV PATH $NEURON_HOME/bin:$PATH
+RUN mkdir /home/jovyan/
+ENV HOME /home/jovyan/
+
 WORKDIR $HOME
 
+RUN apt-get update
+RUN apt-get upgrade -y 
+RUN apt-get install -y apt-utils software-properties-common
 
-apt-add-repository 'http://downloads.makerbot.com/makerware/ubuntu'
-apt-add-repository ppa:fkrull/deadsnakes
-wget http://downloads.makerbot.com/makerware/ubuntu/dev@makerbot.com.gpg.key
-apt-key add dev@makerbot.com.gpg.key
-apt-get update
-apt-get install makerware
-
-ENV HOME /home/jovyan/
+RUN apt-add-repository 'http://downloads.makerbot.com/makerware/ubuntu' -y
+RUN apt-add-repository ppa:fkrull/deadsnakes -y
+RUN wget http://downloads.makerbot.com/makerware/ubuntu/dev@makerbot.com.gpg.key
+RUN apt-key add dev@makerbot.com.gpg.key  -y
+RUN apt-get update 
+RUN apt-get install makerware  -y
 
 RUN apt-get update \
       && apt-get install -y sudo \
