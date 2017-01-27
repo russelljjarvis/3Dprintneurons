@@ -19,7 +19,7 @@ RUN apt-get install -y wget bzip2 ca-certificates \
     emacs \
     libxml2-dev libxslt-dev python-dev sudo
 
-RUN wget http://repo.continuum.io/miniconda/Miniconda3-3.7.0-Linux-x86_64.sh -O ~/miniconda.sh
+RUN wget https://repo.continuum.io/archive/Anaconda2-4.2.0-Linux-x86_64.sh -O ~/miniconda.sh
 RUN bash ~/miniconda.sh -b -p $HOME/miniconda
 ENV PATH "$HOME/miniconda/bin:$PATH"
 #WORKDIR $HOME
@@ -68,6 +68,15 @@ RUN apt-get update
 RUN apt-get upgrade -y 
 RUN apt-get install -y apt-utils software-properties-common
 
+RUN git clone git@github.com:makerbot/pyserial.git
+RUN git submodule update --init
+#RUN python virtualenv.py virtualenv
+RUN ./setup.sh
+RUN git submodule update --init
+WORKDIR submodule/conveyor_bins
+RUN easy_install pyserial-2.7_mb2.1-py2.7.egg
+
+
 RUN apt-add-repository 'http://downloads.makerbot.com/makerware/ubuntu' -y
 RUN apt-add-repository ppa:fkrull/deadsnakes -y
 RUN wget http://downloads.makerbot.com/makerware/ubuntu/dev@makerbot.com.gpg.key
@@ -77,7 +86,7 @@ RUN apt-get install -y makerware
 
 RUN apt-get install povray# --reinstall 
 RUN ln -s /etc/povray/3.7/povray.conf $HOME/.povray
-
+RUN conda install vtk
 
 RUN apt-get update \
       && apt-get install -y sudo \
