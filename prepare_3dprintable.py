@@ -8,7 +8,7 @@ for 3D printing.
 help(prepare_3dprintable.ctng) for more.
 """
 
-def ctng(secs=None, dx=0.5, all_diam=1, somascale=1, special_all_diam={},
+def ctng(secs=None, dx=0.5, cable_diam=3, somascale=3, special_all_diam={},
          magnification=200, show=True, color=(1, 0, 0),file_name=str('')):
     """
     ctng: prepare NEURON morphology for 3D printing
@@ -19,11 +19,11 @@ def ctng(secs=None, dx=0.5, all_diam=1, somascale=1, special_all_diam={},
         dx = mesh discretization after scaling before magnification in um (default: 0.5 um)
             decrease dx if neuron appears disconnected
             increase dx to reduce the number of triangles
-        all_diam = diameter to set non-soma sections to (default: 1 um)
+        cable_diam = diameter to set non-soma sections to (default: 1 um)
         somascale = scale factor for soma (default: 1)
             if dendrites are magnified, they may hide the soma if it is not
             also scaled
-        special_all_diam = exceptions for all_diam, a dictionary keyed by
+        special_all_diam = exceptions for cable_diam, a dictionary keyed by
             section names whose values are the diameters for those sections
         magnification = magnification factor (default: 200)
         show = show the surface when done (default: True)
@@ -69,7 +69,7 @@ def ctng(secs=None, dx=0.5, all_diam=1, somascale=1, special_all_diam={},
                 zs.append(h.z3d(i, sec=sec))
 
                 if sec.name() not in special_all_diam:
-                    h.pt3dchange(i, all_diam, sec=sec)
+                    h.pt3dchange(i, d*5+cable_diam, sec=sec)
                 else:
                     # change this if min diam instead
                     h.pt3dchange(i, special_all_diam[sec.name()], sec=sec)
@@ -79,9 +79,10 @@ def ctng(secs=None, dx=0.5, all_diam=1, somascale=1, special_all_diam={},
                 x.append(h.x3d(i, sec=sec))
                 y.append(h.y3d(i, sec=sec))
                 z.append(h.z3d(i, sec=sec))
+                d = h.diam3d(i, sec=sec)
                 diam.append(h.diam3d(i, sec=sec))
             h.pt3dclear(sec=sec)
-            x, y, z, diam = somascale * numpy.array(x), somascale * numpy.array(y), somascale * numpy.array(z), somascale * numpy.array(diam)
+            x, y, z, diam = d*5 + somascale * numpy.array(x), somascale * numpy.array(y), somascale * numpy.array(z), somascale * numpy.array(diam)
             i = int(len(x) / 2)
             midptx, midpty, midptz = x[i], y[i], z[i]
             x -= midptx / 2.
@@ -121,8 +122,10 @@ def ctng(secs=None, dx=0.5, all_diam=1, somascale=1, special_all_diam={},
     print('number of triangles: %g' % (len(tri_mesh.data) / 9.))
     #mlab.options.offscreen = True
 
-    mlab.savefig(file_name)   
     #if show:
-    #    mlab.show()
+    #   mlab.show()
+
+
+    mlab.savefig(file_name)
 
     return mesh, tri_mesh
