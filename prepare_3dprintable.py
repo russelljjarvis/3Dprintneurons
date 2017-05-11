@@ -8,7 +8,7 @@ for 3D printing.
 help(prepare_3dprintable.ctng) for more.
 """
 
-def ctng(secs=None, dx=0.5, cable_diam=3, somascale=3, special_all_diam={},
+def ctng(secs=None, dx=0.5, cable_diam=1, somascale=1, special_all_diam={},
          magnification=200, show=True, color=(1, 0, 0),file_name=str('')):
     """
     ctng: prepare NEURON morphology for 3D printing
@@ -82,7 +82,7 @@ def ctng(secs=None, dx=0.5, cable_diam=3, somascale=3, special_all_diam={},
                 d = h.diam3d(i, sec=sec)
                 diam.append(h.diam3d(i, sec=sec))
             h.pt3dclear(sec=sec)
-            x, y, z, diam = d*5 + somascale * numpy.array(x), somascale * numpy.array(y), somascale * numpy.array(z), somascale * numpy.array(diam)
+            x, y, z, diam = d*1.5*somascale * numpy.array(x), d*1.5*somascale * numpy.array(y), d*1.5* somascale * numpy.array(z),  d*1.5*somascale * numpy.array(diam)
             i = int(len(x) / 2)
             midptx, midpty, midptz = x[i], y[i], z[i]
             x -= midptx / 2.
